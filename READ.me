@@ -4,7 +4,7 @@ This is a parser for crawled webpages. It was used on 3rd Information Retrieval 
 
 ## Requirements
 
-You must have the [Gumbo-Parser](https://github.com/google/gumbo-parser) library installed.
+You must have the [Chilkat](https://www.chilkatsoft.com/downloads.asp), [Gumbo-Parser](https://github.com/google/gumbo-parser) and pthread libraries installed.
 
 ## Usage
 
@@ -16,7 +16,9 @@ You can compile the parser by doing make:
 ```
 make
 ```
-If something goes wrong with make, check if the MakeFile import path for libraries aforementioned is correct.
+If something goes wrong with make, check the version of Chilkat installed on your machine (MakeFile by default runs with version 9.5.0 of Chilkat. For changes, do it on -lchilkat-9.5.0).
+
+Other problems that may occur are the include and library paths, check if they are correct.
 
 
 If everything occours fine, you can run the program by executing:

@@ -1,13 +1,13 @@
 #use /usr/lib
 
 GPP=g++ -std=c++11
-INCLUDES=/
+INCLUDES=/home/user/Documents/chilkat/include #colocar pasta de include do chilkat
 CPPFILES=*.cpp #./utils/*.cpp
 LIBS=/usr/lib #libs
  
 
 main: parser.cpp 
-	$(GPP) $(CPPFILES)  -I. -g -o parser -L$(LIBS) -lgumbo
+	$(GPP) -I$(INCLUDES) $(CPPFILES)  -I. -g -o parser -L$(LIBS) -lgumbo -lchilkat-9.5.0 -lpthread 
 
 clean:
 	rm parser

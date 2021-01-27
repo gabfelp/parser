@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sys/time.h>
 #include <thread>
-#include <string>
+
 #include <fstream>
 #include <unistd.h>
 #include <set>
@@ -9,22 +9,26 @@
 #include <sys/types.h> // required for stat.h
 #include <sys/stat.h>
 #include <map> 
+#include <vector>
+#include <sstream>
+#include <string>
+#include <cstring>
 
 #include "gumbo.h"
-
+#include <CkString.h>
 
 
 using namespace std;
 
-std::string MAP_PATH = "../collection/urlMap";
+std::string COLLECTION_PATH = "../collection/";
+std::string MAP_PATH = COLLECTION_PATH + "urlMap";
+std::string VOCAB_PATH = "./out/vocabulary.txt"; // place and name of map
 
 double TOTAL_TIME = 0;
-int TOTAL_BARS = 0;
-int fullPagesCollected = 0;
 const int MAX_LENGTH = 100;
+int PAGES_TO_PARSE = 1;
 
-//set<string> alreadyCrawled;
-//set<string> allCollected;
+map<std::string,vector<pair<int,int>>> tokenMap;
 
 
 class Parser
@@ -33,17 +37,20 @@ class Parser
         // return the time
         static double elapsed ();
 
-        // return the page from scheduler
-        void start();
+        // runs the parsing
+        void start(map<int,std::string> urlMap);
 
-        //do the crawling
-        static string processing(std::string  website);
+        // do the parsing on the html
+        static std::string cleanText(GumboNode* node);
 
-        //check the number of bars in url
-        static int checkBars(std::string website);
+        // pre process before token creation
+        static std::vector<std::string> preProcessing(std::string content);
 
-        //save the page on txt
-        static bool savePage(string url, string html, int number);
+        // feed the tokenMap
+        void feedMap(std::vector<std::string> doc);
+
+        // save Vocabulary
+        bool saveIndex();
 
         
 
