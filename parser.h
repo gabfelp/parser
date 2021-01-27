@@ -16,6 +16,8 @@
 
 using namespace std;
 
+std::string MAP_PATH = "../collection/urlMap";
+
 double TOTAL_TIME = 0;
 int TOTAL_BARS = 0;
 int fullPagesCollected = 0;

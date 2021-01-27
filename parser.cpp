@@ -56,7 +56,7 @@ int main(int argc, char **argv){
     map<int,std::string> urlmap;
     Parser p;
 
-    ifstream map("../collection/urlMap");
+    ifstream map(MAP_PATH);
     //ifstream fin("seeds.txt");
     // gets the website and numPages from argv
     std::string line;

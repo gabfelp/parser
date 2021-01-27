@@ -1,0 +1,29 @@
+# Parser
+
+This is a parser for crawled webpages. It was used on 3rd Information Retrieval Assignment, from UFMG.
+
+## Requirements
+
+You must have the [Gumbo-Parser](https://github.com/google/gumbo-parser) library installed.
+
+## Usage
+
+The parser will start the execution by parsing the HTML pages inside collection repository.
+
+For changing the path for collection repository, you can do it on parser.h, on MAP_PATH variable.
+
+You can compile the parser by doing make:
+```
+make
+```
+If something goes wrong with make, check if the MakeFile import path for libraries aforementioned is correct.
+
+
+If everything occours fine, you can run the program by executing:
+```
+./parser
+```
+
+## Results
+The number of tokens that have been mapped will be printed
+
