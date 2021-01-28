@@ -1,8 +1,8 @@
+#include <fstream>
 #include <iostream>
 #include <sys/time.h>
 #include <thread>
 
-#include <fstream>
 #include <unistd.h>
 #include <set>
 #include <algorithm>
@@ -14,25 +14,31 @@
 #include <string>
 #include <cstring>
 
+
+
 #include "gumbo.h"
 #include <CkString.h>
 
 
 using namespace std;
 
-std::string COLLECTION_PATH = "../collection/";
-std::string MAP_PATH = COLLECTION_PATH + "urlMap";
-std::string VOCAB_PATH = "./out/vocabulary.txt"; // place and name of map
+// vars to change
+string COLLECTION_PATH = "../collection/";
+string MAP_PATH = COLLECTION_PATH + "urlMap";
+string OUT_FOLDER = "./out";
+string VOCAB_PATH = OUT_FOLDER+"/vocabulary.txt"; // where the vocabulary will be placed
+string INDEX_PATH = OUT_FOLDER+"/index.txt"; 
+int PAGES_TO_PARSE = 10000;
 
-double TOTAL_TIME = 0;
-const int MAX_LENGTH = 100;
-int PAGES_TO_PARSE = 10;
-int TOTAL_WORDS_COUNT = 0;
 
 // the key of first map is the word.
 // the second map represents a document and all occurrences positions in the document 
 map<std::string,map<int,vector<int>>> tokenMap;
 
+
+double TOTAL_TIME = 0;
+const int MAX_LENGTH = 100;
+int TOTAL_WORDS_COUNT = 0;
 
 class Parser
 {
@@ -57,14 +63,12 @@ class Parser
         // add words in the vocabulary
         void feedMap(int docNumber, std::vector<std::string> doc);
 
-        // print the vocabulary
-        static void printVocabulary();
+        // save the vocabulary and index, true if sucess
+        static bool saveVocabularyAndIndex();
 
-        // print the output results
-        static void printOutput();
+        // print the output results and return the vocabulary sorted by occurrence
+        static vector<pair<string,int>> printOutput();
 
-        // save Vocabulary
-        bool saveIndex();
 
         
 

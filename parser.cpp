@@ -8,7 +8,13 @@ double Parser::elapsed ()
     return  tv.tv_sec + tv.tv_usec * 1e-6;
 }
 
-map<int,std::string> Parser::loadUrlMap(){
+bool comp(const pair<string,int> &a,const pair<string,int> &b)
+{
+      return a.second > b.second;
+}
+
+map<int,std::string> Parser::loadUrlMap()
+{
   map<int,std::string> urlMap;
   ifstream map(MAP_PATH);
   if(map.fail()){
@@ -30,14 +36,13 @@ map<int,std::string> Parser::loadUrlMap(){
             line.erase(0,pos+delimiter.length());
         }
         urlMap.insert(pair<int,std::string>(stoi(line),word));
-        
     }
   }
-
   return urlMap;
 }
 
-std::string Parser::cleanText(GumboNode* node) {
+std::string Parser::cleanText(GumboNode* node) 
+{
   if (node->type == GUMBO_NODE_TEXT) {
     return std::string(node->v.text.text);
   } else if (node->type == GUMBO_NODE_ELEMENT &&
@@ -72,28 +77,25 @@ std::vector<std::string> Parser::preProcessing(std::string content){
   //std::replace_if(ret.begin() , ret.end() , [] (const char& c) { return std::ispunct(c) ;},' ');
 
   // chars to remove
-  char chars_to_remove[] = "\“\”|?#.,/!:";
+  char chars_to_remove[] = "\“\”|?#.,/!:)(\";�*<>";
   for(int j = 0; j < strlen(chars_to_remove);j++){
     ret.erase(std::remove(ret.begin(), ret.end(), chars_to_remove[j]), ret.end());
   }
-  /*
-  //for replacing m0 with m²
+  
+  // for remove separated -
   int idx = 0;
   while(true){
-    idx = ret.find("mÒ",idx);
+    idx = ret.find("- ",idx);
     if (idx == std::string::npos) break;
-    ret.replace(idx,2,"m²");
-    idx+=2;
+    ret.replace(idx,1," ");
+    idx+=1;
   }
-  */
-
+  
+  // put terms into array
   std::vector<std::string> result; 
   std::istringstream iss(ret); 
   for(std::string ret; iss >> ret; ) 
     result.push_back(ret); 
-
-  
-
 
   return result;
 
@@ -110,7 +112,7 @@ void Parser::feedMap(int docNumber,std::vector<std::string> doc){
       tokenMap.insert(pair<std::string,map<int,vector<int>>>(re,sub));
 
     } else {
-      // word found, check doc
+      // word found, checking doc
       
       //check if doc already exists
       if ( tokenMap[re].find(docNumber) == tokenMap[re].end() ) {
@@ -122,7 +124,6 @@ void Parser::feedMap(int docNumber,std::vector<std::string> doc){
 
       }
 
-
     }
     //cout<<re<<endl;
     wordCount++;
@@ -130,63 +131,107 @@ void Parser::feedMap(int docNumber,std::vector<std::string> doc){
   TOTAL_WORDS_COUNT+= wordCount;
 }
 
-void Parser::printVocabulary(){
-  for(auto iter = tokenMap.begin(); iter != tokenMap.end(); iter++){
-    cout << iter->first << " ";
-    for(auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++){
-      cout << iter2->first << " { ";
-      for(auto elem : iter2->second){
-        cout << elem << " ";
-      }
-      cout << "}" << endl;
+bool Parser::saveVocabularyAndIndex(){
+  // create out folder
+  int nError = 0;
+  #if defined(_WIN32)
+      nError = _mkdir(OUT_FOLDER.c_str()); // can be used on Windows
+  #else 
+      nError = mkdir(OUT_FOLDER.c_str(),0777); // can be used on non-Windows
+  #endif
+
+  try{
+    std::ofstream outIndex,outVocab;
+    outIndex.open(INDEX_PATH,std::ofstream::trunc);
+    outVocab.open(VOCAB_PATH,std::ofstream::trunc);
+    if(outIndex.fail() || outVocab.fail()){
+      cout <<" Some errors creating the files\n" <<endl;
+      return false;
     }
+    // saves index and vocabulary
+    for(auto iter = tokenMap.begin(); iter != tokenMap.end(); iter++){
+      outIndex << iter->first << " ";
+      outVocab << iter->first << endl;
+      for(auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++){
+        outIndex << iter2->first << " { ";
+        for(auto elem : iter2->second){
+          outIndex << elem << " ";
+        }
+        outIndex << "} ";
+      }
+      outIndex << endl;
+    }
+    outVocab.close();
+    outIndex.close();
+  }catch (int e){
+      std::cout << "Error on saving" << endl;
+      return false;
   }
+
+  return true;
+
 }
 
-void Parser::printOutput(){
+vector<pair<string,int>> Parser::printOutput()
+{
+
+  vector<pair<string,int>> forSorting;
   int size = 0;
+
   size += tokenMap.size() * sizeof(string); // number of words
   
+  int inv_lists_size = 0;
+  int num_docs_size = 0;
+  int inv_lists_word;
   
   for(auto iter = tokenMap.begin(); iter != tokenMap.end(); iter++){
-    size +=iter->second.size() * sizeof(int);
+    inv_lists_word = 0;
+    size +=iter->second.size() * sizeof(int); // number of documents
+
+    num_docs_size+= iter->second.size();
+
     for(auto iter2 = iter->second.begin(); iter2 != iter->second.end(); iter2++){
-      size +=iter2->second.size() * sizeof(int);
+      size +=iter2->second.size() * sizeof(int); // number of occurrences
+
+      inv_lists_size += iter2->second.size();
+      inv_lists_word += iter2->second.size();
     }
+
+    forSorting.push_back(make_pair(iter->first,inv_lists_word));
+
   }
 
+  std::sort(forSorting.begin(), forSorting.end(), comp);
   //for Kb
   float size_kb = size / 1000.0; 
+  float avg_inv_size = inv_lists_size/(float)tokenMap.size();
+  float avg_doc_size = num_docs_size/(float)tokenMap.size();
 
-  cout << "Inverted Index Size (in Kbytes): " << size_kb << endl;
+  //printing
+  cout << "Average Size of each inverted list : " << avg_inv_size << endl;
+  cout << "Inverted Index Size (in Kbytes) : " << size_kb << endl;
+  cout << "Average number of documents for each term : " << avg_doc_size << endl;
   
+
+  return forSorting;
 }
 
-bool Parser::saveIndex(){
-    try{
-        std::ofstream outVocab;
-
-        outVocab.open(VOCAB_PATH,std::ios_base::app);
-        
-        outVocab.close();
-    }catch (int e){
-        std::cout << "Error on saving" << endl;
-    }
-    return true;
-}
 
 void Parser::start(){
     double t0 = elapsed();
+    int COLLECTION_SIZE = 0;
 
     for(int i = 0; i < PAGES_TO_PARSE; i ++){
       std::string contents;
-      ifstream file(COLLECTION_PATH + to_string(i)+".html");
+      ifstream file(COLLECTION_PATH + to_string(i)+".html",ios::binary | ios::ate);
 
       if(file.fail()){
         cout << "File" << COLLECTION_PATH+to_string(i)<<".html not found, stopping."<<endl;
         PAGES_TO_PARSE = i;
         break;
       }
+
+      COLLECTION_SIZE += file.tellg();
 
       file.seekg(0,std::ios::end);
       contents.resize(file.tellg());
@@ -199,7 +244,6 @@ void Parser::start(){
       gumbo_destroy_output(&kGumboDefaultOptions, out);
 
       std::vector<std::string> preProcessedDoc = preProcessing(cleanWebsite);
-      
       feedMap(i, preProcessedDoc);
     }
 
@@ -207,23 +251,31 @@ void Parser::start(){
     double t1 = elapsed();
 
     TOTAL_TIME = t1-t0;
+    float col_size_kb = COLLECTION_SIZE/1000.0;
 
+    // saving index and vocabulary
+    saveVocabularyAndIndex();
 
-    std::cout << "Total Words Count : "  << TOTAL_WORDS_COUNT << endl;
-    std::cout << "Number of Terms in Vocabulary : " << tokenMap.size() << endl;
-    printOutput();
-
-    std::cout << "Average Parsing time per page : "<< TOTAL_TIME/PAGES_TO_PARSE << "s" << endl;
+    // printing results
+    cout << "Mini-Collection Number of Pages : " << PAGES_TO_PARSE << endl;
+    cout << "Mini-Collection Size (in Kbytes) : " << col_size_kb << endl;
+    std::cout << "Size of the vocabulary (number of distinct terms) : " << tokenMap.size() << endl;
+    std::cout << "Total Terms Count : "  << TOTAL_WORDS_COUNT << endl;
+    // get vocabulary sorted by occurrences
+    vector<pair<string,int>> forSorting = printOutput();
+    std::cout << "Average time for processing each page : "<< TOTAL_TIME/PAGES_TO_PARSE << "s" << endl;
     std::cout << "Total time : "<< TOTAL_TIME << "s" << endl;
+
+    cout << "------ 25 MOST FREQUENT TERMS AND NUMBER OF OCCURRENCES ------" << endl;
+    for(int elm = 0; elm < 25; elm ++){
+      cout << forSorting[elm].first << " " << forSorting[elm].second << endl;
+    }
+
 }
 
 
 int main(int argc, char **argv){
-    
-    
     Parser p;
-
-    
     /* 
     map<int,std::string> urlMap = p.loadUrlMap();
 
